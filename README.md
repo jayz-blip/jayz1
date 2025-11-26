@@ -143,6 +143,36 @@ API 키가 없어도 로컬 모델로 동작합니다.
 
 자세한 내용은 `DEPLOY_CLOUDFLARE.md` 참고
 
+## 백엔드 배포
+
+백엔드는 Python FastAPI를 사용하므로 **별도의 호스팅 서비스**가 필요합니다.
+
+**Cloudflare Workers는 Python을 지원하지 않으므로** 다음 옵션 중 하나를 선택하세요:
+
+### 추천 옵션
+
+1. **Railway** (가장 간단) ⭐
+   - Python 지원
+   - 무료 티어 제공
+   - GitHub 연동으로 자동 배포
+
+2. **Render**
+   - Python 지원
+   - 무료 티어 제공
+   - 간단한 설정
+
+3. **Fly.io**
+   - Python 지원
+   - 전 세계 배포
+   - 무료 티어 제공
+
+자세한 배포 가이드는 `DEPLOY_BACKEND.md`를 참고하세요.
+
+### 백엔드 배포 후
+
+프론트엔드(Cloudflare Pages)에서 환경 변수 설정:
+- `VITE_API_URL`: 백엔드 API URL (예: `https://your-api.railway.app`)
+
 ## 라이선스
 
 MIT
