@@ -143,35 +143,39 @@ API 키가 없어도 로컬 모델로 동작합니다.
 
 자세한 내용은 `DEPLOY_CLOUDFLARE.md` 참고
 
-## 백엔드 배포
+## 백엔드 배포 (Cloudflare에서 실행하기)
 
-백엔드는 Python FastAPI를 사용하므로 **별도의 호스팅 서비스**가 필요합니다.
+### ⚡ 가장 간단한 방법: 하이브리드 구조 (권장)
 
-**Cloudflare Workers는 Python을 지원하지 않으므로** 다음 옵션 중 하나를 선택하세요:
+**현재 백엔드를 그대로 유지하면서 Cloudflare를 통해 서비스하는 방법:**
 
-### 추천 옵션
+1. **백엔드를 Railway/Render에 배포**
+   - Python FastAPI를 그대로 사용
+   - `DEPLOY_BACKEND.md` 참고
 
-1. **Railway** (가장 간단) ⭐
-   - Python 지원
-   - 무료 티어 제공
-   - GitHub 연동으로 자동 배포
+2. **Cloudflare Pages Functions로 프록시 설정** (이미 구현됨 ✅)
+   - `functions/api/[[path]].js` 파일이 자동으로 `/api/*` 경로를 프록시합니다
 
-2. **Render**
-   - Python 지원
-   - 무료 티어 제공
-   - 간단한 설정
+3. **환경 변수 설정**
+   - Cloudflare Pages → Settings → Environment variables
+   - `BACKEND_URL`: Railway/Render에서 배포한 백엔드 URL 입력
+     예: `https://your-api.railway.app`
 
-3. **Fly.io**
-   - Python 지원
-   - 전 세계 배포
-   - 무료 티어 제공
+이렇게 하면:
+- ✅ 프론트엔드와 백엔드 모두 Cloudflare 네트워크를 통해 서비스
+- ✅ 현재 코드 수정 최소화
+- ✅ Cloudflare의 CDN 및 보안 기능 활용
 
-자세한 배포 가이드는 `DEPLOY_BACKEND.md`를 참고하세요.
+### 🔧 Cloudflare Workers Python으로 완전 재구성 (고급)
 
-### 백엔드 배포 후
+현재 백엔드를 Cloudflare Workers Python으로 재작성하는 방법도 있습니다.
+- `DEPLOY_CLOUDFLARE_WORKERS.md` 참고
+- ⚠️ ChromaDB, Sentence Transformers 등은 제약이 있어 재구성 필요
 
-프론트엔드(Cloudflare Pages)에서 환경 변수 설정:
-- `VITE_API_URL`: 백엔드 API URL (예: `https://your-api.railway.app`)
+### 📚 자세한 가이드
+
+- **Railway/Render 배포**: `DEPLOY_BACKEND.md`
+- **Cloudflare Workers 재구성**: `DEPLOY_CLOUDFLARE_WORKERS.md`
 
 ## 라이선스
 

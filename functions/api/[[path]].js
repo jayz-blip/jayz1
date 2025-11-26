@@ -4,7 +4,12 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   
   // 백엔드 API URL (환경 변수에서 가져오거나 직접 설정)
+  // Cloudflare Pages → Settings → Environment variables에서 BACKEND_URL 설정
   const backendUrl = context.env.BACKEND_URL || 'http://localhost:8000';
+  
+  if (!context.env.BACKEND_URL) {
+    console.warn('BACKEND_URL 환경 변수가 설정되지 않았습니다. 기본값을 사용합니다.');
+  }
   
   // API 요청을 백엔드로 프록시
   const path = context.params.path ? `/${context.params.path.join('/')}` : '';
