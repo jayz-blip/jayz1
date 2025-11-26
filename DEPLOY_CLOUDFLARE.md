@@ -35,7 +35,7 @@ ls -la dist/
 
 #### 방법 1: Cloudflare Pages Functions (권장)
 
-`functions/api/[...path].js` 파일이 자동으로 `/api/*` 경로를 처리합니다.
+`functions/api/[[path]].js` 파일이 자동으로 `/api/*` 경로를 처리합니다.
 
 #### 방법 2: 환경 변수로 API URL 설정
 
@@ -65,10 +65,16 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 백엔드는 별도로 배포해야 합니다:
 
-### 옵션 1: Cloudflare Workers
-- `wrangler.toml` 설정 후 `wrangler publish`
-
-### 옵션 2: 다른 호스팅 서비스
-- Railway, Render, Fly.io 등 사용
+### 옵션 1: 다른 호스팅 서비스
+- Railway, Render, Fly.io, Heroku 등 사용
 - 환경 변수에 `BACKEND_URL` 설정
+
+### 옵션 2: Cloudflare Workers (별도 설정 필요)
+- 백엔드를 Workers로 배포하려면 별도 프로젝트로 설정
+
+## 중요 사항
+
+- `wrangler.toml` 파일은 Cloudflare Pages에서 사용하지 않습니다 (Workers 전용)
+- Functions 파일명은 `[[path]].js` 형식 (이중 대괄호)을 사용해야 합니다
+- 빌드 명령어가 설정되어 있어야 합니다: `npm run build`
 

@@ -7,7 +7,8 @@ export async function onRequest(context) {
   const backendUrl = context.env.BACKEND_URL || 'http://localhost:8000';
   
   // API 요청을 백엔드로 프록시
-  const apiUrl = `${backendUrl}/api${url.pathname.replace('/api', '')}${url.search}`;
+  const path = context.params.path ? `/${context.params.path.join('/')}` : '';
+  const apiUrl = `${backendUrl}/api${path}${url.search}`;
   
   try {
     const response = await fetch(apiUrl, {

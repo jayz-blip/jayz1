@@ -1,8 +1,0 @@
-name = "company-chatbot"
-compatibility_date = "2024-01-01"
-
-[env.production]
-routes = [
-  { pattern = "your-domain.com", zone_name = "your-domain.com" }
-]
-
