@@ -55,11 +55,42 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 2. Console에서 오류가 없는지 확인
 3. API 요청이 정상적으로 작동하는지 확인
 
+## ⚠️ 중요: 빌드 설정 확인
+
+**가장 중요한 것은 Cloudflare Pages 대시보드에서 빌드 설정이 올바른지 확인하는 것입니다!**
+
+### Cloudflare Pages 대시보드에서 확인:
+
+1. **Settings** → **Builds & deployments** 섹션으로 이동
+2. 다음 설정이 **반드시** 되어 있어야 합니다:
+   - ✅ **Build command**: `npm run build` (반드시 설정!)
+   - ✅ **Build output directory**: `dist` (반드시 설정!)
+   - ✅ **Root directory**: `/` (기본값)
+
+3. **환경 변수** 설정 (Settings → Environment variables):
+   - `NODE_VERSION`: `18` (선택사항이지만 권장)
+
+### 빌드가 실행되지 않는 경우:
+
+만약 빌드 로그에 "No build command specified"가 보이면:
+1. Settings → Builds & deployments로 이동
+2. Build command에 `npm run build` 입력
+3. Build output directory에 `dist` 입력
+4. 저장 후 재배포
+
 ## 문제가 계속 발생하는 경우
 
-1. **캐시 삭제**: Cloudflare 대시보드에서 캐시 삭제
-2. **빌드 로그 확인**: Cloudflare Pages → Deployments → 최신 배포의 빌드 로그 확인
-3. **로컬 빌드 테스트**: `npm run build && npm run preview`로 로컬에서 테스트
+1. **빌드 로그 확인**: Cloudflare Pages → Deployments → 최신 배포 클릭 → Build log 확인
+   - 빌드가 실행되었는지 확인
+   - 오류 메시지 확인
+2. **로컬 빌드 테스트**: 
+   ```bash
+   npm install
+   npm run build
+   # dist/index.html 파일이 생성되고, /src/main.jsx가 아닌 /assets/...js로 변환되었는지 확인
+   ```
+3. **캐시 삭제**: Cloudflare 대시보드에서 캐시 삭제
+4. **수동 재배포**: Deployments → 최신 배포 → Retry deployment
 
 ## 백엔드 배포
 
