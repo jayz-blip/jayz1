@@ -113,6 +113,36 @@ API 키가 없어도 로컬 모델로 동작합니다.
 └── README.md             # 이 파일
 ```
 
+## Cloudflare Pages 배포
+
+### 배포 설정
+
+1. **Cloudflare Pages 프로젝트 생성**
+   - Cloudflare 대시보드 → Pages → Create a project
+   - GitHub 레포지토리 연결
+
+2. **빌드 설정**
+   - **Build command**: `npm run build`
+   - **Build output directory**: `dist`
+   - **Root directory**: `/` (기본값)
+
+3. **환경 변수 설정** (선택사항)
+   - `VITE_API_URL`: 백엔드 API URL
+   - `NODE_VERSION`: `18` 또는 `20`
+
+4. **배포**
+   - 저장 후 자동 배포 시작
+   - 배포 완료 후 URL 확인
+
+### MIME Type 오류 해결
+
+이 프로젝트는 Cloudflare Pages에서 발생하는 MIME type 오류를 해결하기 위해 다음 설정을 포함합니다:
+- `public/_headers`: 올바른 MIME type 헤더 설정
+- `vite.config.js`: 빌드 최적화 설정
+- `functions/api/[...path].js`: API 프록시 (선택사항)
+
+자세한 내용은 `DEPLOY_CLOUDFLARE.md` 참고
+
 ## 라이선스
 
 MIT
