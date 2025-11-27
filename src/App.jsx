@@ -37,9 +37,15 @@ function App() {
 
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      console.log('🔗 API URL:', API_URL);
+      console.log('📤 전송할 질문:', input);
+      
       const response = await axios.post(`${API_URL}/api/chat`, {
         message: input
       })
+      
+      console.log('📥 서버 응답:', response.data);
+      console.log('✅ 응답 성공');
 
       const assistantMessage = {
         role: 'assistant',
@@ -50,10 +56,20 @@ function App() {
 
       setMessages(prev => [...prev, assistantMessage])
     } catch (error) {
-      console.error('Error:', error)
+      console.error('❌ 오류 발생!');
+      console.error('오류 객체:', error);
+      console.error('오류 메시지:', error.message);
+      if (error.response) {
+        console.error('서버 응답 상태:', error.response.status);
+        console.error('서버 응답 데이터:', error.response.data);
+      }
+      if (error.request) {
+        console.error('요청은 보냈지만 응답을 받지 못함:', error.request);
+      }
+      
       const errorMessage = {
         role: 'assistant',
-        content: '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요. 😢',
+        content: `오류가 발생했습니다: ${error.message || '알 수 없는 오류'}. CMD 창과 브라우저 콘솔을 확인해주세요. 😢`,
         timestamp: new Date()
       }
       setMessages(prev => [...prev, errorMessage])

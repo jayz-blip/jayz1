@@ -3,10 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import os
+import logging
 from dotenv import load_dotenv
 from rag_system import RAGSystem
 
 load_dotenv()
+
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="사내용 채팅 AI", version="1.0.0")
 
@@ -37,9 +46,13 @@ async def root():
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
+        logger.info(f"📩 받은 질문: {request.message}")
         response, sources = rag_system.query(request.message)
+        logger.info(f"✅ 응답 생성 완료 (소스 개수: {len(sources) if sources else 0})")
+        logger.info(f"📝 응답 내용 (처음 100자): {response[:100]}...")
         return ChatResponse(response=response, sources=sources)
     except Exception as e:
+        logger.error(f"❌ 오류 발생: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/reload")
