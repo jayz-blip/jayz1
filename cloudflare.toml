@@ -1,7 +1,9 @@
 [build]
-command = "npm run build"
+command = "npm install && npm run build"
 output_dir = "dist"
 
 [build.environment]
 NODE_VERSION = "18"
+# Python 설치 비활성화
+SKIP_PYTHON = "true"
 
