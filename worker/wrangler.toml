@@ -1,12 +1,13 @@
 name = "chatbot-api"
 main = "src/worker.py"
 compatibility_date = "2024-01-01"
+compatibility_flags = ["python_workers"]
 
 # D1 데이터베이스 바인딩
 [[d1_databases]]
 binding = "DB"
 database_name = "chatbot-db"
-database_id = "your-database-id-here"  # 실제 D1 데이터베이스 ID로 변경 필요
+database_id = "07f05a1f-794b-4429-a91d-6191de544588"  # 실제 D1 데이터베이스 ID로 변경 필요
 
 # AI Workers 바인딩 (임베딩 생성용)
 [ai]
