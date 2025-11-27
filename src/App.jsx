@@ -38,11 +38,15 @@ function App() {
     try {
       // Cloudflare Pages Functions 프록시 사용
       // /api/chat으로 요청하면 functions/api/[[path]].js가 Workers로 프록시
+      // 프로덕션에서는 /api 사용, 로컬 개발 시에만 VITE_API_URL 사용
       const API_URL = import.meta.env.VITE_API_URL || '/api';
-      console.log('🔗 API URL:', API_URL);
+      const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const finalApiUrl = isLocalDev && import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL : '/api';
+      
+      console.log('🔗 API URL:', finalApiUrl);
       console.log('📤 전송할 질문:', input);
       
-      const response = await axios.post(`${API_URL}/chat`, {
+      const response = await axios.post(`${finalApiUrl}/chat`, {
         message: input
       })
       
