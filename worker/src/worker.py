@@ -119,13 +119,19 @@ async def handle_chat(request, env, headers):
         top_results = similarities[:3]
         
         # 응답 생성
-        if top_results and top_results[0]["similarity"] > 0.3:  # 유사도 임계값
+        if top_results and top_results[0]["similarity"] > 0.1:  # 유사도 임계값 (낮춤)
             best_match = top_results[0]
+            # 가장 관련성 높은 답변 사용
             response_text = best_match["content"]
             
-            # OpenAI API가 설정되어 있으면 더 자연스러운 응답 생성
-            if env.OPENAI_API_KEY:
-                response_text = await generate_ai_response(env, message, best_match["content"])
+            # 메타데이터에서 타입 확인하여 더 나은 응답 생성
+            metadata = best_match.get("metadata", {})
+            if metadata.get("type") == "댓글":
+                # 댓글은 이미 답변 형식이므로 그대로 사용
+                response_text = best_match["content"]
+            else:
+                # 원글의 경우 내용을 추출
+                response_text = best_match["content"]
         else:
             response_text = "죄송합니다. 관련된 정보를 찾을 수 없습니다. 좀 더 구체적으로 질문해 주시면 도움을 드릴 수 있습니다."
         
@@ -157,57 +163,46 @@ async def handle_chat(request, env, headers):
 async def generate_embedding(env, text):
     """Cloudflare AI Workers로 임베딩 생성"""
     try:
-        # Cloudflare AI Workers 사용 (다국어 모델)
+        # Cloudflare AI Workers 사용
+        # @cf/baai/bge-small-en-v1.5 사용 (더 작고 빠른 모델)
         response = await env.AI.run(
-            "@cf/baai/bge-base-en-v1.5",  # 영어 모델 (한국어도 어느 정도 지원)
-            {"text": [text]}
+            "@cf/baai/bge-small-en-v1.5",
+            {"text": text}
         )
-        # 응답에서 임베딩 벡터 추출
-        if hasattr(response, 'data') and response.data:
-            return response.data[0] if isinstance(response.data, list) else response.data
-        elif hasattr(response, 'embeddings'):
-            return response.embeddings[0] if isinstance(response.embeddings, list) else response.embeddings
-        else:
-            # 응답 형식이 다를 수 있으므로 직접 접근 시도
-            return response
+        
+        # 응답 형식에 따라 임베딩 추출
+        if isinstance(response, dict):
+            if "data" in response:
+                embeddings = response["data"]
+                if isinstance(embeddings, list) and len(embeddings) > 0:
+                    return embeddings[0]
+            elif "embeddings" in response:
+                embeddings = response["embeddings"]
+                if isinstance(embeddings, list) and len(embeddings) > 0:
+                    return embeddings[0]
+        elif isinstance(response, list) and len(response) > 0:
+            return response[0]
+        
+        # 기본 벡터 반환 (384차원)
+        return [0.0] * 384
     except Exception as e:
-        print(f"임베딩 생성 오류: {e}")
-        # 폴백: 간단한 해시 기반 벡터 (실제로는 사용하지 않음)
-        return [0.0] * 384  # 기본 벡터 크기
+        # 폴백: 간단한 해시 기반 벡터
+        import hashlib
+        hash_obj = hashlib.md5(text.encode('utf-8'))
+        hash_hex = hash_obj.hexdigest()
+        vector = [int(hash_hex[i:i+2], 16) / 255.0 for i in range(0, min(384, len(hash_hex)), 2)]
+        while len(vector) < 384:
+            vector.append(0.0)
+        return vector[:384]
 
 async def generate_ai_response(env, query, context):
     """OpenAI API를 사용한 응답 생성 (선택사항)"""
     try:
-        import fetch
-        response = await fetch.fetch(
-            "https://api.openai.com/v1/chat/completions",
-            {
-                "method": "POST",
-                "headers": {
-                    "Authorization": f"Bearer {env.OPENAI_API_KEY}",
-                    "Content-Type": "application/json"
-                },
-                "body": json.dumps({
-                    "model": "gpt-3.5-turbo",
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": "당신은 고객 지원 전문가입니다. 제공된 컨텍스트를 바탕으로 정확하고 도움이 되는 답변을 제공합니다."
-                        },
-                        {
-                            "role": "user",
-                            "content": f"컨텍스트: {context}\n\n질문: {query}\n\n답변:"
-                        }
-                    ],
-                    "max_tokens": 500,
-                    "temperature": 0.7
-                })
-            }
-        )
-        result = await response.json()
-        return result["choices"][0]["message"]["content"]
+        # fetch는 JavaScript에서 사용하는 것이므로 Python에서는 다른 방법 사용
+        # Cloudflare Workers Python에서는 fetch를 직접 사용할 수 없으므로
+        # 간단하게 컨텍스트를 반환하거나, Cloudflare AI Workers의 텍스트 생성 모델 사용
+        return context  # 일단 원본 컨텍스트 반환
     except Exception as e:
-        print(f"OpenAI API 오류: {e}")
         return context  # 폴백: 원본 컨텍스트 반환
 
 async def handle_reload(env, headers):

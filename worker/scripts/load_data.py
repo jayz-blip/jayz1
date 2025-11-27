@@ -149,9 +149,18 @@ DELETE FROM documents;
 
 """)
         for doc in documents:
-            # SQL injection 방지
-            content_escaped = doc["content"].replace("'", "''")
-            f.write(f"INSERT INTO documents (id, content, metadata, embedding) VALUES ('{doc['id']}', '{content_escaped}', '{doc['metadata']}', '{doc['embedding']}');\n")
+            # SQL injection 방지 - 더 안전한 방법
+            def escape_sql(text):
+                if text is None:
+                    return ''
+                return str(text).replace("'", "''").replace("\\", "\\\\")
+            
+            doc_id = escape_sql(doc['id'])
+            content_escaped = escape_sql(doc['content'])
+            metadata_escaped = escape_sql(doc['metadata'])
+            embedding_escaped = escape_sql(doc['embedding'])
+            
+            f.write(f"INSERT INTO documents (id, content, metadata, embedding) VALUES ('{doc_id}', '{content_escaped}', '{metadata_escaped}', '{embedding_escaped}');\n")
     
     print(f"\nSQL 파일이 생성되었습니다: {sql_file}")
     print(f"총 {len(documents)}개 문서가 포함되어 있습니다.")

@@ -1,0 +1,6 @@
+# 로컬 개발용 환경 변수
+# 이 파일을 .dev.vars로 복사하고 실제 값 입력
+
+# OpenAI API 키 (선택사항)
+OPENAI_API_KEY=your_openai_api_key_here
+
