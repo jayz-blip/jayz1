@@ -19,6 +19,8 @@ dist/
 # Environment
 .env.local
 .env.production
+.dev.vars
+worker/.dev.vars
 
 # IDE
 .vscode/
