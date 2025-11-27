@@ -36,11 +36,13 @@ function App() {
     setLoading(true)
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      // Cloudflare Pages Functions 프록시 사용
+      // /api/chat으로 요청하면 functions/api/[[path]].js가 Workers로 프록시
+      const API_URL = import.meta.env.VITE_API_URL || '/api';
       console.log('🔗 API URL:', API_URL);
       console.log('📤 전송할 질문:', input);
       
-      const response = await axios.post(`${API_URL}/api/chat`, {
+      const response = await axios.post(`${API_URL}/chat`, {
         message: input
       })
       
