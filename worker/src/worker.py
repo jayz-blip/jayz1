@@ -29,22 +29,24 @@ def cosine_similarity(vec1, vec2):
 
 async def on_fetch(request, env):
     """Cloudflare Workers 요청 핸들러"""
-    url = request.url
-    path = url.pathname
-    
-    # CORS 헤더
-    headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Content-Type": "application/json",
-    }
-    
-    # OPTIONS 요청 처리
-    if request.method == "OPTIONS":
-        return Response.new(None, headers=headers, status=204)
-    
     try:
+        # request.url은 문자열이므로 URL 객체로 변환
+        from js import URL
+        url_obj = URL.new(request.url)
+        path = url_obj.pathname
+        
+        # CORS 헤더
+        headers = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+            "Content-Type": "application/json",
+        }
+        
+        # OPTIONS 요청 처리
+        if request.method == "OPTIONS":
+            return Response.new(None, headers=headers, status=204)
+        
         # API 라우팅
         if path == "/api/chat" and request.method == "POST":
             return await handle_chat(request, env, headers)
@@ -57,14 +59,23 @@ async def on_fetch(request, env):
             )
         else:
             return Response.new(
-                json.dumps({"error": "Not Found"}),
+                json.dumps({"error": "Not Found", "path": path}),
                 headers=headers,
                 status=404
             )
     except Exception as e:
+        import traceback
+        error_msg = str(e)
+        traceback_str = ''.join(traceback.format_exc())
         return Response.new(
-            json.dumps({"error": str(e)}),
-            headers=headers,
+            json.dumps({
+                "error": error_msg,
+                "traceback": traceback_str
+            }),
+            headers={
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+            },
             status=500
         )
 
