@@ -1,7 +1,5 @@
 [phases.setup]
 nixPkgs = ["nodejs-18_x"]
-# Python 설치 비활성화
-skipDetectors = ["pip"]
 
 [phases.install]
 cmds = ["npm install"]
