@@ -30,10 +30,22 @@ def cosine_similarity(vec1, vec2):
 async def on_fetch(request, env):
     """Cloudflare Workers 요청 핸들러"""
     try:
-        # request.url은 문자열이므로 URL 객체로 변환
+        # request.url 처리 - 안전한 방식
         from js import URL
-        url_obj = URL.new(request.url)
-        path = url_obj.pathname
+        try:
+            # request.url이 문자열인 경우
+            if isinstance(request.url, str):
+                url_str = request.url
+            else:
+                # request.url이 객체인 경우
+                url_str = str(request.url)
+            
+            url_obj = URL.new(url_str)
+            path = url_obj.pathname
+        except Exception as url_error:
+            # URL 파싱 실패 시 기본값 사용
+            path = "/"
+            print(f"URL parsing error: {url_error}")
         
         # CORS 헤더
         headers = {
@@ -109,10 +121,30 @@ async def handle_chat(request, env, headers):
         # Cloudflare AI Workers로 쿼리 임베딩 생성
         query_embedding = await generate_embedding(env, message)
         
-        # D1에서 모든 문서 가져오기
-        result = await env.DB.prepare(
-            "SELECT id, content, metadata, embedding FROM documents WHERE content IS NOT NULL AND content != ''"
-        ).all()
+        # D1에서 모든 문서 가져오기 (안전한 방식)
+        try:
+            if not hasattr(env, 'DB') or env.DB is None:
+                return Response.new(
+                    json.dumps({
+                        "response": "D1 데이터베이스가 연결되지 않았습니다.",
+                        "sources": []
+                    }),
+                    headers=headers,
+                    status=500
+                )
+            
+            result = await env.DB.prepare(
+                "SELECT id, content, metadata, embedding FROM documents WHERE content IS NOT NULL AND content != '' LIMIT 100"
+            ).all()
+        except Exception as db_error:
+            return Response.new(
+                json.dumps({
+                    "response": f"D1 데이터베이스 오류: {str(db_error)}",
+                    "sources": []
+                }),
+                headers=headers,
+                status=500
+            )
         
         if not result.results:
             return Response.new(
@@ -186,6 +218,10 @@ async def handle_chat(request, env, headers):
 async def generate_embedding(env, text):
     """Cloudflare AI Workers로 임베딩 생성"""
     try:
+        # AI Workers 바인딩 확인
+        if not hasattr(env, 'AI') or env.AI is None:
+            raise Exception("AI Workers 바인딩이 없습니다")
+        
         # Cloudflare AI Workers 사용
         # @cf/baai/bge-small-en-v1.5 사용 (더 작고 빠른 모델)
         response = await env.AI.run(
