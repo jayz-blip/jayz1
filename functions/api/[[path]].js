@@ -5,7 +5,8 @@ export async function onRequest(context) {
   
   // 백엔드 API URL (환경 변수에서 가져오기)
   // Cloudflare Pages → Settings → Environment variables에서 BACKEND_URL 설정 필수
-  const backendUrl = context.env.BACKEND_URL;
+  // 줄바꿈 문자 제거
+  const backendUrl = context.env.BACKEND_URL ? context.env.BACKEND_URL.trim() : null;
   
   if (!backendUrl) {
     return new Response(JSON.stringify({ 
