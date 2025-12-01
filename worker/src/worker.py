@@ -155,17 +155,50 @@ async def handle_chat(request, env, headers):
                 headers=headers
             )
         
-        # 유사도 계산 및 정렬
+        # 유사도 계산 및 정렬 (안전한 방식)
         similarities = []
         for doc in result.results:
-            doc_embedding = json.loads(doc.embedding) if doc.embedding else None
-            if doc_embedding:
-                similarity = cosine_similarity(query_embedding, doc_embedding)
-                similarities.append({
-                    "similarity": similarity,
-                    "content": doc.content,
-                    "metadata": json.loads(doc.metadata) if doc.metadata else {}
-                })
+            try:
+                # embedding 파싱
+                doc_embedding = None
+                if doc.embedding:
+                    try:
+                        if isinstance(doc.embedding, str):
+                            doc_embedding = json.loads(doc.embedding)
+                        elif isinstance(doc.embedding, (list, tuple)):
+                            doc_embedding = list(doc.embedding)
+                        else:
+                            doc_embedding = None
+                    except:
+                        doc_embedding = None
+                
+                if doc_embedding and isinstance(doc_embedding, (list, tuple)):
+                    # query_embedding도 리스트로 변환
+                    query_emb = list(query_embedding) if isinstance(query_embedding, (list, tuple)) else query_embedding
+                    doc_emb = list(doc_embedding)
+                    
+                    similarity = cosine_similarity(query_emb, doc_emb)
+                    
+                    # metadata 파싱
+                    metadata = {}
+                    if doc.metadata:
+                        try:
+                            if isinstance(doc.metadata, str):
+                                metadata = json.loads(doc.metadata)
+                            elif isinstance(doc.metadata, dict):
+                                metadata = doc.metadata
+                        except:
+                            metadata = {}
+                    
+                    similarities.append({
+                        "similarity": float(similarity),
+                        "content": str(doc.content) if doc.content else "",
+                        "metadata": metadata
+                    })
+            except Exception as doc_error:
+                # 문서 처리 실패 시 건너뛰기
+                print(f"Document processing error: {doc_error}")
+                continue
         
         # 유사도 순으로 정렬
         similarities.sort(key=lambda x: x["similarity"], reverse=True)
@@ -190,15 +223,30 @@ async def handle_chat(request, env, headers):
         else:
             response_text = "죄송합니다. 관련된 정보를 찾을 수 없습니다. 좀 더 구체적으로 질문해 주시면 도움을 드릴 수 있습니다."
         
-        # 소스 정보 구성
-        sources = [
-            {
-                "content": result["content"][:200] + "..." if len(result["content"]) > 200 else result["content"],
-                "metadata": result["metadata"],
-                "similarity": result["similarity"]
-            }
-            for result in top_results
-        ]
+        # 소스 정보 구성 (안전한 방식)
+        sources = []
+        for result in top_results:
+            try:
+                # metadata가 dict인지 확인
+                metadata = result.get("metadata", {})
+                if isinstance(metadata, str):
+                    try:
+                        metadata = json.loads(metadata)
+                    except:
+                        metadata = {}
+                elif not isinstance(metadata, dict):
+                    metadata = {}
+                
+                source_item = {
+                    "content": str(result.get("content", ""))[:200] + "..." if len(str(result.get("content", ""))) > 200 else str(result.get("content", "")),
+                    "metadata": metadata,
+                    "similarity": float(result.get("similarity", 0.0))
+                }
+                sources.append(source_item)
+            except Exception as source_error:
+                # 소스 항목 생성 실패 시 건너뛰기
+                print(f"Source item error: {source_error}")
+                continue
         
         return Response.new(
             json.dumps({
@@ -229,18 +277,32 @@ async def generate_embedding(env, text):
             {"text": text}
         )
         
-        # 응답 형식에 따라 임베딩 추출
-        if isinstance(response, dict):
-            if "data" in response:
-                embeddings = response["data"]
-                if isinstance(embeddings, list) and len(embeddings) > 0:
-                    return embeddings[0]
-            elif "embeddings" in response:
-                embeddings = response["embeddings"]
-                if isinstance(embeddings, list) and len(embeddings) > 0:
-                    return embeddings[0]
-        elif isinstance(response, list) and len(response) > 0:
-            return response[0]
+        # 응답 형식에 따라 임베딩 추출 (안전한 방식)
+        try:
+            if isinstance(response, dict):
+                if "data" in response:
+                    embeddings = response["data"]
+                    if isinstance(embeddings, (list, tuple)) and len(embeddings) > 0:
+                        embedding = embeddings[0]
+                        if isinstance(embedding, (list, tuple)):
+                            return list(embedding)
+                elif "embeddings" in response:
+                    embeddings = response["embeddings"]
+                    if isinstance(embeddings, (list, tuple)) and len(embeddings) > 0:
+                        embedding = embeddings[0]
+                        if isinstance(embedding, (list, tuple)):
+                            return list(embedding)
+                elif "shape" in response and "data" in response:
+                    # NumPy 배열 형식일 수 있음
+                    data = response["data"]
+                    if isinstance(data, (list, tuple)):
+                        return list(data)
+            elif isinstance(response, (list, tuple)) and len(response) > 0:
+                embedding = response[0]
+                if isinstance(embedding, (list, tuple)):
+                    return list(embedding)
+        except Exception as parse_error:
+            print(f"Embedding parse error: {parse_error}")
         
         # 기본 벡터 반환 (384차원)
         return [0.0] * 384
