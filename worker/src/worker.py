@@ -157,10 +157,15 @@ async def handle_chat(request, env, headers):
             )
         
         # 유사도 계산 및 정렬 (안전한 방식)
-        # 성능 최적화: 최대 500개만 처리
+        # 성능 최적화: 최대 200개만 처리 (타임아웃 방지)
         similarities = []
-        max_docs = min(500, len(result.results))
+        max_docs = min(200, len(result.results))
+        processed_count = 0
         for i, doc in enumerate(result.results[:max_docs]):
+            processed_count += 1
+            # 안전장치: 너무 많은 문서 처리 시 중단
+            if processed_count > 200:
+                break
             try:
                 # embedding 파싱
                 doc_embedding = None
@@ -251,20 +256,42 @@ async def handle_chat(request, env, headers):
                 print(f"Source item error: {source_error}")
                 continue
         
+        # 최종 응답 반환 (항상 반환 보장)
+        response_data = {
+            "response": response_text,
+            "sources": sources
+        }
+        
         return Response.new(
-            json.dumps({
-                "response": response_text,
-                "sources": sources
-            }),
+            json.dumps(response_data),
             headers=headers
         )
         
     except Exception as e:
-        return Response.new(
-            json.dumps({"error": str(e)}),
-            headers=headers,
-            status=500
-        )
+        import traceback
+        try:
+            error_msg = str(e)
+            traceback_str = ''.join(traceback.format_exc())
+            # 오류 응답 반환 (항상 반환 보장)
+            return Response.new(
+                json.dumps({
+                    "error": error_msg,
+                    "response": "죄송합니다. 처리 중 오류가 발생했습니다.",
+                    "traceback": traceback_str[:500]  # 너무 길면 잘라내기
+                }),
+                headers=headers,
+                status=500
+            )
+        except Exception as inner_e:
+            # 최후의 폴백: 항상 응답 반환
+            return Response.new(
+                json.dumps({
+                    "error": f"Internal error: {str(inner_e)}",
+                    "response": "죄송합니다. 심각한 오류가 발생했습니다."
+                }),
+                headers=headers,
+                status=500
+            )
 
 async def generate_embedding(env, text):
     """Cloudflare AI Workers로 임베딩 생성"""
