@@ -30,9 +30,27 @@ def cosine_similarity(vec1, vec2):
 async def on_fetch(request, env):
     """Cloudflare Workers 요청 핸들러"""
     try:
-        # request.url 처리 - 안전한 방식
-        from js import URL
+        # CORS 헤더 (먼저 정의)
+        headers = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+            "Content-Type": "application/json",
+        }
+        
+        # request.method 안전하게 가져오기
         try:
+            method = request.method
+        except:
+            method = "GET"
+        
+        # OPTIONS 요청 처리
+        if method == "OPTIONS":
+            return Response.new(None, headers=headers, status=204)
+        
+        # request.url 처리 - 안전한 방식
+        try:
+            from js import URL
             # request.url이 문자열인 경우
             if isinstance(request.url, str):
                 url_str = request.url
@@ -47,23 +65,11 @@ async def on_fetch(request, env):
             path = "/"
             print(f"URL parsing error: {url_error}")
         
-        # CORS 헤더
-        headers = {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-            "Content-Type": "application/json",
-        }
-        
-        # OPTIONS 요청 처리
-        if request.method == "OPTIONS":
-            return Response.new(None, headers=headers, status=204)
-        
         # API 라우팅
         if path == "/api/chat":
-            if request.method == "POST":
+            if method == "POST":
                 return await handle_chat(request, env, headers)
-            elif request.method == "GET":
+            elif method == "GET":
                 # GET 요청 시 안내 메시지 반환
                 return Response.new(
                     json.dumps({
@@ -83,9 +89,9 @@ async def on_fetch(request, env):
                     headers=headers,
                     status=405
                 )
-        elif path == "/api/reload" and request.method == "POST":
+        elif path == "/api/reload" and method == "POST":
             return await handle_reload(env, headers)
-        elif path == "/" and request.method == "GET":
+        elif path == "/" and method == "GET":
             return Response.new(
                 json.dumps({
                     "message": "사내용 채팅 AI API",
