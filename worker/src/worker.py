@@ -60,18 +60,51 @@ async def on_fetch(request, env):
             return Response.new(None, headers=headers, status=204)
         
         # API 라우팅
-        if path == "/api/chat" and request.method == "POST":
-            return await handle_chat(request, env, headers)
+        if path == "/api/chat":
+            if request.method == "POST":
+                return await handle_chat(request, env, headers)
+            elif request.method == "GET":
+                # GET 요청 시 안내 메시지 반환
+                return Response.new(
+                    json.dumps({
+                        "message": "사내용 채팅 AI API",
+                        "endpoint": "/api/chat",
+                        "method": "POST",
+                        "description": "이 엔드포인트는 POST 요청만 지원합니다. JSON 형식으로 {'message': '질문 내용'}을 전송해주세요.",
+                        "example": {
+                            "message": "안녕하세요"
+                        }
+                    }),
+                    headers=headers
+                )
+            else:
+                return Response.new(
+                    json.dumps({"error": "Method not allowed", "allowed_methods": ["POST", "GET"]}),
+                    headers=headers,
+                    status=405
+                )
         elif path == "/api/reload" and request.method == "POST":
             return await handle_reload(env, headers)
         elif path == "/" and request.method == "GET":
             return Response.new(
-                json.dumps({"message": "사내용 채팅 AI API", "status": "running"}),
+                json.dumps({
+                    "message": "사내용 채팅 AI API",
+                    "status": "running",
+                    "endpoints": {
+                        "/api/chat": "POST - 채팅 요청",
+                        "/api/reload": "POST - 데이터 재로드",
+                        "/": "GET - API 정보"
+                    }
+                }),
                 headers=headers
             )
         else:
             return Response.new(
-                json.dumps({"error": "Not Found", "path": path}),
+                json.dumps({
+                    "error": "Not Found",
+                    "path": path,
+                    "available_endpoints": ["/", "/api/chat", "/api/reload"]
+                }),
                 headers=headers,
                 status=404
             )
