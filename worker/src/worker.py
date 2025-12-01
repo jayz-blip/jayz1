@@ -65,19 +65,31 @@ async def on_fetch(request, env):
             )
     except Exception as e:
         import traceback
-        error_msg = str(e)
-        traceback_str = ''.join(traceback.format_exc())
-        return Response.new(
-            json.dumps({
+        try:
+            error_msg = str(e)
+            traceback_str = ''.join(traceback.format_exc())
+            error_response = {
                 "error": error_msg,
                 "traceback": traceback_str
-            }),
-            headers={
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
-            status=500
-        )
+            }
+            return Response.new(
+                json.dumps(error_response),
+                headers={
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*",
+                },
+                status=500
+            )
+        except Exception as inner_e:
+            # 최후의 폴백
+            return Response.new(
+                json.dumps({"error": f"Internal error: {str(inner_e)}"}),
+                headers={
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*",
+                },
+                status=500
+            )
 
 async def handle_chat(request, env, headers):
     """채팅 요청 처리"""
