@@ -8,17 +8,21 @@ export async function onRequest(context) {
   const backendUrl = context.env.BACKEND_URL;
   
   if (!backendUrl) {
-    console.error('BACKEND_URL 환경 변수가 설정되지 않았습니다!');
     return new Response(JSON.stringify({ 
       error: 'Backend URL not configured',
-      message: 'BACKEND_URL environment variable is not set. Please configure it in Cloudflare Pages settings.'
+      message: 'BACKEND_URL environment variable is not set. Please configure it in Cloudflare Pages settings.',
+      debug: {
+        hasBackendUrl: false,
+        envKeys: Object.keys(context.env || {})
+      }
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
   }
-  
-  console.log('🔗 Backend URL:', backendUrl);
   
   // API 요청을 백엔드로 프록시
   const path = context.params.path ? `/${context.params.path.join('/')}` : '';
@@ -35,6 +39,24 @@ export async function onRequest(context) {
     
     const data = await response.text();
     
+    // Workers에서 오류가 발생한 경우
+    if (!response.ok) {
+      return new Response(JSON.stringify({ 
+        error: 'Backend error',
+        status: response.status,
+        statusText: response.statusText,
+        data: data,
+        backendUrl: backendUrl,
+        apiUrl: apiUrl
+      }), {
+        status: response.status,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+    
     return new Response(data, {
       status: response.status,
       headers: {
@@ -45,9 +67,18 @@ export async function onRequest(context) {
       },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Proxy error', message: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: 'Proxy error', 
+      message: error.message,
+      stack: error.stack,
+      backendUrl: backendUrl,
+      apiUrl: apiUrl
+    }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
   }
 }
