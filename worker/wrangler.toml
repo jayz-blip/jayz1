@@ -17,3 +17,7 @@ binding = "AI"
 # 환경 변수
 NODE_ENV = "production"
 
+# 관찰 가능성 활성화
+[observability]
+enabled = true
+
