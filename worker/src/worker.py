@@ -133,8 +133,9 @@ async def handle_chat(request, env, headers):
                     status=500
                 )
             
+            # 성능 최적화: 필요한 컬럼만 선택하고 LIMIT 적용
             result = await env.DB.prepare(
-                "SELECT id, content, metadata, embedding FROM documents WHERE content IS NOT NULL AND content != '' LIMIT 100"
+                "SELECT id, content, metadata, embedding FROM documents WHERE content IS NOT NULL AND content != '' LIMIT 500"
             ).all()
         except Exception as db_error:
             return Response.new(
@@ -156,8 +157,10 @@ async def handle_chat(request, env, headers):
             )
         
         # 유사도 계산 및 정렬 (안전한 방식)
+        # 성능 최적화: 최대 500개만 처리
         similarities = []
-        for doc in result.results:
+        max_docs = min(500, len(result.results))
+        for i, doc in enumerate(result.results[:max_docs]):
             try:
                 # embedding 파싱
                 doc_embedding = None

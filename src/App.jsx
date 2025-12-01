@@ -50,6 +50,11 @@ function App() {
       
       const response = await axios.post(`${API_URL}/chat`, {
         message: input
+      }, {
+        timeout: 30000, // 30초 타임아웃
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
       
       console.log('📥 서버 응답:', response.data);
