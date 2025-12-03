@@ -1,5 +1,5 @@
 name = "chatbot-api"
-main = "src/worker.py"
+main = "src/worker_minimal.py"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["python_workers"]
 
