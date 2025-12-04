@@ -30,13 +30,20 @@ export async function onRequest(context) {
   const apiUrl = `${backendUrl}/api${path}${url.search}`;
   
   try {
+    // 타임아웃 설정 (120초 - 첫 요청 시 모델 로딩 시간 고려)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
+    
     const response = await fetch(apiUrl, {
       method: request.method,
       headers: {
         'Content-Type': 'application/json',
       },
       body: request.method !== 'GET' && request.method !== 'HEAD' ? await request.text() : null,
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
     
     const data = await response.text();
     
