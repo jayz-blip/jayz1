@@ -58,36 +58,26 @@
 - 배포 완료 대기 (약 2-3분)
 - 배포 완료 후 URL 확인 (예: `https://malgpt.pages.dev`)
 
-## 3️⃣ 백엔드 배포 (Railway 권장)
+## 3️⃣ 백엔드 배포
 
-### 옵션 A: Railway 배포
+### 옵션 A: Render.com 배포 (무료 플랜 제공) ⭐ 권장
 
-1. **Railway 접속**
-   - https://railway.app/
-   - GitHub로 로그인
+**자세한 가이드는 [DEPLOY_RENDER.md](DEPLOY_RENDER.md)를 참고하세요.**
 
-2. **새 프로젝트 생성**
-   - **New Project** → **Deploy from GitHub repo**
-   - 저장소 선택: `jayz-blip/jayz1`
-
-3. **서비스 설정**
-   - **Add Service** → **GitHub Repo**
-   - **Root Directory**: `backend` 설정
+간단 요약:
+1. **Render.com 접속**: https://render.com/
+2. **New +** → **Web Service**
+3. **GitHub 저장소 연결**: `jayz-blip/jayz1`
+4. **설정**:
+   - **Root Directory**: `backend`
+   - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `python main.py`
+5. **환경 변수**:
+   - `OPENAI_API_KEY`: 실제 API 키 입력
+   - `PORT`: `8000`
+6. **Create Web Service** 클릭
 
-4. **환경 변수 설정**
-   - **Variables** 탭에서 추가:
-     ```
-     OPENAI_API_KEY=your_openai_api_key_here
-     PORT=8000
-     ```
-   - ⚠️ **중요**: 실제 OpenAI API 키는 Railway 대시보드에서 직접 입력하세요.
-
-5. **배포 확인**
-   - 배포 완료 후 URL 확인 (예: `https://malgpt-api.railway.app`)
-   - `/api/chat` 엔드포인트 테스트
-
-### 옵션 B: Render 배포
+### 옵션 B: Railway 배포 (유료 플랜 필요할 수 있음)
 
 1. **Render 접속**
    - https://render.com/
