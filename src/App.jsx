@@ -36,13 +36,14 @@ function App() {
     setLoading(true)
 
     try {
-      // Cloudflare Pages Functions 프록시 사용
-      // 프로덕션에서는 항상 /api 사용 (functions/api/[[path]].js가 Workers로 프록시)
-      // 로컬 개발 시에만 VITE_API_URL 사용
+      // 백엔드 URL 직접 사용 (Cloudflare Functions 타임아웃 제한 우회)
       const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      
+      // 환경 변수에서 백엔드 URL 가져오기, 없으면 기본값 사용
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://jayznew.onrender.com';
       const API_URL = isLocalDev && import.meta.env.VITE_API_URL 
         ? import.meta.env.VITE_API_URL 
-        : '/api';
+        : `${BACKEND_URL}/api`;
       
       console.log('🔗 API URL:', API_URL);
       console.log('🌐 현재 호스트:', window.location.hostname);
