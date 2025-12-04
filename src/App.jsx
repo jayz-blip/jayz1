@@ -48,6 +48,7 @@ function App() {
       console.log('🔗 API URL:', API_URL);
       console.log('🌐 현재 호스트:', window.location.hostname);
       console.log('📤 전송할 질문:', input);
+      console.log('🔧 백엔드 URL:', BACKEND_URL);
       
       const response = await axios.post(`${API_URL}/chat`, {
         message: input
@@ -81,9 +82,24 @@ function App() {
         console.error('요청은 보냈지만 응답을 받지 못함:', error.request);
       }
       
+      let errorContent = `오류가 발생했습니다: ${error.message || '알 수 없는 오류'}. 😢`;
+      
+      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+        errorContent = `네트워크 오류가 발생했습니다. 백엔드 서버가 응답하지 않습니다. 
+        
+가능한 원인:
+1. 백엔드 서버가 sleep 모드에 있을 수 있습니다 (첫 요청 시 30-50초 소요)
+2. 백엔드 URL이 올바르지 않을 수 있습니다
+3. CORS 설정 문제일 수 있습니다
+
+잠시 후 다시 시도해주세요.`;
+      } else if (error.response) {
+        errorContent = `서버 오류 (${error.response.status}): ${error.response.data?.detail || error.response.data?.message || '알 수 없는 오류'}`;
+      }
+      
       const errorMessage = {
         role: 'assistant',
-        content: `오류가 발생했습니다: ${error.message || '알 수 없는 오류'}. CMD 창과 브라우저 콘솔을 확인해주세요. 😢`,
+        content: errorContent,
         timestamp: new Date()
       }
       setMessages(prev => [...prev, errorMessage])
