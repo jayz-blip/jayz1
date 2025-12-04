@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="사내용 채팅 AI", version="1.0.0")
+app = FastAPI(title="사내용 채팅 AI", version="1.0.0", lifespan=lifespan)
 
 # CORS 설정
 app.add_middleware(
@@ -41,9 +41,12 @@ def get_rag_system():
         logger.info("✅ RAG 시스템 초기화 완료")
     return rag_system
 
-@app.on_event("startup")
-async def startup_event():
-    """서버 시작 시 백그라운드로 모델 미리 로드 (warm-up)"""
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """서버 시작/종료 시 실행되는 lifespan 이벤트"""
+    # 서버 시작 시
     import asyncio
     logger.info("🚀 서버 시작 - 백그라운드에서 모델 로딩 시작...")
     
@@ -57,6 +60,11 @@ async def startup_event():
     
     # 백그라운드 태스크로 실행 (요청을 블로킹하지 않음)
     asyncio.create_task(warm_up())
+    
+    yield  # 서버 실행 중
+    
+    # 서버 종료 시 (필요한 경우)
+    logger.info("🛑 서버 종료 중...")
 
 class ChatRequest(BaseModel):
     message: str

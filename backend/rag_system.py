@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 import chromadb
-from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 from typing import List, Tuple, Optional, Dict
 import re
@@ -17,15 +16,9 @@ class RAGSystem:
         # 모델과 데이터는 지연 로딩 (메모리 절약)
         self.embedding_model = None
         db_path = os.path.join(os.path.dirname(__file__), "..", "chroma_db")
-        # ChromaDB 클라이언트 설정 (최신 버전 호환)
-        try:
-            self.client = chromadb.PersistentClient(path=db_path)
-        except Exception as e:
-            # 구버전 호환성
-            self.client = chromadb.Client(Settings(
-                chroma_db_impl="duckdb+parquet",
-                persist_directory=db_path
-            ))
+        # ChromaDB 클라이언트 설정 (최신 버전 사용)
+        # 0.4.18 버전에서는 PersistentClient를 사용해야 함
+        self.client = chromadb.PersistentClient(path=db_path)
         self.collection = None
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.use_openai = bool(self.openai_api_key)
