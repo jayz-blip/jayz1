@@ -6,7 +6,7 @@ function App() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: '안녕하세요! 👋 사내용 채팅 AI입니다. 무엇을 도와드릴까요?',
+      content: '안녕하세요! 👋 맑쥐피티입니다. 고객사명을 말씀해주시면 최근 문의 내역을 알려드립니다. 무엇을 도와드릴까요?',
       timestamp: new Date()
     }
   ])
@@ -104,7 +104,7 @@ function App() {
         <div className="chat-header">
           <div className="header-content">
             <span className="header-emoji">🤖</span>
-            <h1>사내용 채팅 AI</h1>
+            <h1>맑쥐피티</h1>
             <span className="status-dot"></span>
           </div>
         </div>

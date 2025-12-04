@@ -47,6 +47,15 @@ async def root():
 async def chat(request: ChatRequest):
     try:
         logger.info(f"📩 받은 질문: {request.message}")
+        
+        # 고객사 근황 조회인지 먼저 확인
+        company_status = rag_system.query_company_status(request.message)
+        if company_status:
+            response, sources = company_status
+            logger.info(f"✅ 고객사 근황 조회 완료")
+            return ChatResponse(response=response, sources=sources)
+        
+        # 일반 쿼리 처리
         response, sources = rag_system.query(request.message)
         logger.info(f"✅ 응답 생성 완료 (소스 개수: {len(sources) if sources else 0})")
         logger.info(f"📝 응답 내용 (처음 100자): {response[:100]}...")

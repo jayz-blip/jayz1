@@ -3,11 +3,12 @@ import pandas as pd
 import chromadb
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
 import re
 from bs4 import BeautifulSoup
 import openai
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -22,6 +23,10 @@ class RAGSystem:
         self.collection = None
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.use_openai = bool(self.openai_api_key)
+        
+        # 원본 데이터프레임 저장 (고객사별 검색용)
+        self.df_original = None
+        self.df_comment = None
         
         # 데이터 로드 및 벡터화
         self.load_data()
@@ -58,10 +63,10 @@ class RAGSystem:
         # 원글 데이터 로드
         try:
             csv_path_original = os.path.join(os.path.dirname(__file__), "..", "20251125_PPM학습용데이터_원글.csv")
-            df_original = pd.read_csv(csv_path_original, encoding='utf-8')
-            print(f"원글 데이터: {len(df_original)}개 로드됨")
+            self.df_original = pd.read_csv(csv_path_original, encoding='utf-8')
+            print(f"원글 데이터: {len(self.df_original)}개 로드됨")
             
-            for idx, row in df_original.iterrows():
+            for idx, row in self.df_original.iterrows():
                 content = self.clean_html(row.get('content', ''))
                 subject = self.clean_html(row.get('subject', ''))
                 name = row.get('name', '')
@@ -85,10 +90,10 @@ class RAGSystem:
         # 댓글 데이터 로드
         try:
             csv_path_comment = os.path.join(os.path.dirname(__file__), "..", "20251125_PPM학습용데이터_댓글.csv")
-            df_comment = pd.read_csv(csv_path_comment, encoding='utf-8')
-            print(f"댓글 데이터: {len(df_comment)}개 로드됨")
+            self.df_comment = pd.read_csv(csv_path_comment, encoding='utf-8')
+            print(f"댓글 데이터: {len(self.df_comment)}개 로드됨")
             
-            for idx, row in df_comment.iterrows():
+            for idx, row in self.df_comment.iterrows():
                 content = self.clean_html(row.get('content', ''))
                 name = row.get('name', '')
                 writer = row.get('writer', '')
@@ -217,4 +222,154 @@ class RAGSystem:
             response = self.get_local_response(query, context)
         
         return response, sources
+    
+    def extract_company_name(self, query: str) -> Optional[str]:
+        """쿼리에서 고객사명 추출"""
+        # 고객사명이 있는지 확인
+        if self.df_original is not None:
+            company_names = self.df_original['name'].unique().tolist()
+            # 긴 이름부터 매칭 (부분 매칭 방지)
+            company_names_sorted = sorted([str(c) for c in company_names if c], key=len, reverse=True)
+            
+            for company in company_names_sorted:
+                if company and company in query:
+                    return company
+        return None
+    
+    def get_company_recent_inquiries(self, company_name: str, limit: int = 10) -> List[Dict]:
+        """고객사별 최근 문의글과 답변 조회"""
+        if self.df_original is None or self.df_comment is None:
+            return []
+        
+        # 해당 고객사의 최근 문의글 조회
+        company_inquiries = self.df_original[
+            self.df_original['name'] == company_name
+        ].copy()
+        
+        # 날짜순 정렬 (최신순)
+        if 'reg_date' in company_inquiries.columns:
+            company_inquiries = company_inquiries.sort_values('reg_date', ascending=False)
+        
+        results = []
+        
+        for idx, inquiry in company_inquiries.head(limit).iterrows():
+            inquiry_id = str(inquiry.get('id', ''))
+            inquiry_content = self.clean_html(inquiry.get('content', ''))
+            inquiry_subject = self.clean_html(inquiry.get('subject', ''))
+            inquiry_date = inquiry.get('reg_date', '')
+            manager_id = inquiry.get('manager_id', '')
+            writer = inquiry.get('writer', '')
+            
+            # 해당 문의글의 답변 조회 (post_id는 문자열로 변환해서 비교)
+            replies = self.df_comment[
+                (self.df_comment['name'] == company_name) & 
+                (self.df_comment['post_id'].astype(str) == str(inquiry_id))
+            ].copy()
+            
+            # 답변도 날짜순 정렬
+            if 'reg_date' in replies.columns:
+                replies = replies.sort_values('reg_date', ascending=False)
+            
+            reply_list = []
+            for _, reply in replies.iterrows():
+                reply_content = self.clean_html(reply.get('content', ''))
+                reply_writer = reply.get('writer', '')
+                reply_date = reply.get('reg_date', '')
+                reply_list.append({
+                    'content': reply_content,
+                    'writer': reply_writer,
+                    'date': reply_date
+                })
+            
+            results.append({
+                'id': inquiry_id,
+                'subject': inquiry_subject,
+                'content': inquiry_content,
+                'date': inquiry_date,
+                'writer': writer,
+                'manager_id': manager_id,
+                'replies': reply_list,
+                'reply_count': len(reply_list)
+            })
+        
+        return results
+    
+    def summarize_company_status(self, company_name: str, inquiries: List[Dict]) -> str:
+        """고객사별 근황 요약"""
+        if not inquiries:
+            return f"{company_name}의 최근 문의 내역이 없습니다."
+        
+        # 최근 문의글들을 텍스트로 구성
+        summary_text = f"{company_name}의 최근 문의 내역:\n\n"
+        
+        for i, inquiry in enumerate(inquiries[:5], 1):  # 최대 5개만
+            summary_text += f"{i}. 문의 제목: {inquiry.get('subject', '[제목 없음]')}\n"
+            summary_text += f"   문의 내용: {inquiry.get('content', '')[:200]}...\n"
+            
+            if inquiry.get('replies'):
+                latest_reply = inquiry['replies'][0]
+                summary_text += f"   답변 담당자: {latest_reply.get('writer', '미상')}\n"
+                summary_text += f"   답변 내용: {latest_reply.get('content', '')[:150]}...\n"
+                summary_text += f"   상태: 답변 완료 ({inquiry.get('reply_count', 0)}개 답변)\n"
+            else:
+                summary_text += f"   상태: 답변 대기 중\n"
+            
+            summary_text += "\n"
+        
+        # OpenAI를 사용해서 더 간결하게 요약
+        if self.use_openai and self.openai_api_key:
+            try:
+                client = openai.OpenAI(api_key=self.openai_api_key)
+                prompt = f"""다음은 {company_name}의 최근 고객 문의 및 답변 내역입니다. 
+간략하게 요약해서 알려주세요. 각 문의에 대해 어떤 문의였는지, 담당자가 누구인지, 해결되었는지 여부를 간단히 정리해주세요.
+
+{summary_text}
+
+위 내용을 간략하게 요약해주세요 (3-5줄 정도):"""
+                
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "당신은 고객 지원 현황을 요약하는 전문가입니다. 간결하고 명확하게 요약해주세요."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=500
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                print(f"OpenAI 요약 오류: {e}")
+                return summary_text
+        
+        return summary_text
+    
+    def query_company_status(self, query: str) -> Optional[Tuple[str, List[dict]]]:
+        """고객사 근황 조회 전용 함수"""
+        company_name = self.extract_company_name(query)
+        
+        if not company_name:
+            return None
+        
+        # 고객사별 최근 문의 조회
+        inquiries = self.get_company_recent_inquiries(company_name, limit=10)
+        
+        if not inquiries:
+            return f"{company_name}의 최근 문의 내역을 찾을 수 없습니다.", []
+        
+        # 요약 생성
+        summary = self.summarize_company_status(company_name, inquiries)
+        
+        # 소스 정보 구성
+        sources = []
+        for inquiry in inquiries[:3]:  # 상위 3개만 소스로
+            sources.append({
+                "content": f"문의: {inquiry.get('subject', '')}",
+                "metadata": {
+                    "type": "고객사 근황",
+                    "name": company_name,
+                    "id": inquiry.get('id', '')
+                }
+            })
+        
+        return summary, sources
 
