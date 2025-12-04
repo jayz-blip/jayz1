@@ -39,7 +39,7 @@
 
 다음 설정을 입력:
 
-- **Project name**: `malgpt` (원하는 이름)
+- **Project name**: `malgpt` 또는 원하는 이름 (기존 프로젝트와 무관하게 새로 생성 가능)
 - **Production branch**: `main`
 - **Build command**: `npm install && npm run build`
 - **Build output directory**: `dist`

@@ -12,7 +12,8 @@
 1. **Cloudflare 대시보드 접속**: https://dash.cloudflare.com/
 2. **Pages** → **Create a project** → **Connect to Git**
 3. **저장소 선택**: `jayz-blip/jayz1`
-4. **빌드 설정**:
+4. **프로젝트 이름**: `malgpt` 또는 원하는 이름 입력 (기존 프로젝트와 무관)
+5. **빌드 설정**:
    - Build command: `npm install && npm run build`
    - Build output directory: `dist`
 5. **환경 변수** (백엔드 배포 후 설정):
