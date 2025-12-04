@@ -53,7 +53,7 @@ async def startup_event():
             await asyncio.to_thread(get_rag_system)
             logger.info("✅ 모델 warm-up 완료")
         except Exception as e:
-            logger.error(f"⚠️ 모델 warm-up 실패 (첫 요청 시 로드됨): {e}")
+            logger.error(f"⚠️ 모델 warm-up 실패 (첫 요청 시 로드됨): {e}", exc_info=True)
     
     # 백그라운드 태스크로 실행 (요청을 블로킹하지 않음)
     asyncio.create_task(warm_up())
@@ -91,8 +91,11 @@ async def chat(request: ChatRequest):
         logger.info(f"📝 응답 내용 (처음 100자): {response[:100]}...")
         return ChatResponse(response=response, sources=sources)
     except Exception as e:
-        logger.error(f"❌ 오류 발생: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = str(e)
+        logger.error(f"❌ 오류 발생: {error_msg}", exc_info=True)
+        # 에러 메시지에서 ANSI 색상 코드 제거
+        clean_error = error_msg.replace('\x1B[91m', '').replace('\x1B[0m', '')
+        raise HTTPException(status_code=500, detail=clean_error)
 
 @app.post("/api/reload")
 async def reload_data():
