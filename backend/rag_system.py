@@ -14,7 +14,8 @@ load_dotenv()
 
 class RAGSystem:
     def __init__(self):
-        self.embedding_model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+        # 모델과 데이터는 지연 로딩 (메모리 절약)
+        self.embedding_model = None
         db_path = os.path.join(os.path.dirname(__file__), "..", "chroma_db")
         self.client = chromadb.Client(Settings(
             chroma_db_impl="duckdb+parquet",
@@ -28,8 +29,23 @@ class RAGSystem:
         self.df_original = None
         self.df_comment = None
         
-        # 데이터 로드 및 벡터화
-        self.load_data()
+        # 초기화 완료 플래그
+        self._initialized = False
+    
+    def _ensure_initialized(self):
+        """필요 시 초기화 (지연 로딩)"""
+        if not self._initialized:
+            print("🔄 RAG 시스템 초기화 중...")
+            # 모델 로드
+            if self.embedding_model is None:
+                print("📥 임베딩 모델 로딩 중...")
+                self.embedding_model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+                print("✅ 임베딩 모델 로딩 완료")
+            
+            # 데이터 로드 및 벡터화
+            self.load_data()
+            self._initialized = True
+            print("✅ RAG 시스템 초기화 완료")
     
     def clean_html(self, text: str) -> str:
         """HTML 태그 제거 및 텍스트 정리"""
@@ -189,6 +205,7 @@ class RAGSystem:
     
     def query(self, query: str, top_k: int = 3) -> Tuple[str, List[dict]]:
         """질문에 대한 답변 생성"""
+        self._ensure_initialized()
         # 쿼리 벡터화
         query_embedding = self.embedding_model.encode([query])[0]
         
@@ -225,6 +242,7 @@ class RAGSystem:
     
     def extract_company_name(self, query: str) -> Optional[str]:
         """쿼리에서 고객사명 추출"""
+        self._ensure_initialized()
         # 고객사명이 있는지 확인
         if self.df_original is not None:
             company_names = self.df_original['name'].unique().tolist()

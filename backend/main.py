@@ -28,8 +28,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# RAG 시스템 초기화
-rag_system = RAGSystem()
+# RAG 시스템 지연 초기화 (메모리 절약)
+rag_system = None
+
+def get_rag_system():
+    """RAG 시스템 지연 로딩"""
+    global rag_system
+    if rag_system is None:
+        logger.info("🔄 RAG 시스템 초기화 중...")
+        rag_system = RAGSystem()
+        logger.info("✅ RAG 시스템 초기화 완료")
+    return rag_system
 
 class ChatRequest(BaseModel):
     message: str
@@ -48,15 +57,18 @@ async def chat(request: ChatRequest):
     try:
         logger.info(f"📩 받은 질문: {request.message}")
         
+        # RAG 시스템 지연 로딩
+        rag = get_rag_system()
+        
         # 고객사 근황 조회인지 먼저 확인
-        company_status = rag_system.query_company_status(request.message)
+        company_status = rag.query_company_status(request.message)
         if company_status:
             response, sources = company_status
             logger.info(f"✅ 고객사 근황 조회 완료")
             return ChatResponse(response=response, sources=sources)
         
         # 일반 쿼리 처리
-        response, sources = rag_system.query(request.message)
+        response, sources = rag.query(request.message)
         logger.info(f"✅ 응답 생성 완료 (소스 개수: {len(sources) if sources else 0})")
         logger.info(f"📝 응답 내용 (처음 100자): {response[:100]}...")
         return ChatResponse(response=response, sources=sources)
@@ -67,7 +79,8 @@ async def chat(request: ChatRequest):
 @app.post("/api/reload")
 async def reload_data():
     try:
-        rag_system.reload_data()
+        rag = get_rag_system()
+        rag.reload_data()
         return {"message": "데이터가 성공적으로 다시 로드되었습니다."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
