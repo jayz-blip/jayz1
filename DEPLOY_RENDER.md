@@ -34,11 +34,11 @@ Render.com은 무료 플랜을 제공하며 Python FastAPI 배포를 지원합�
 **Environment Variables** 섹션에서:
 
 1. **Add Environment Variable** 클릭
-2. 다음 변수 추가:
+2. 다음 변수들을 순서대로 추가:
+   - **Key**: `PYTHON_VERSION`
+   - **Value**: `3.11.9` ⚠️ **중요: Python 3.13은 pandas와 호환되지 않음**
    - **Key**: `OPENAI_API_KEY`
    - **Value**: 실제 OpenAI API 키 입력
-3. **Add Environment Variable** 다시 클릭
-4. 다음 변수 추가:
    - **Key**: `PORT`
    - **Value**: `8000`
 
@@ -66,11 +66,20 @@ Render.com은 무료 플랜을 제공하며 Python FastAPI 배포를 지원합�
 
 ## 🔧 문제 해결
 
+### pandas 빌드 오류 (Python 3.13 호환성 문제)
+
+**증상**: `error: too few arguments to function '_PyLong_AsByteArray'`
+
+**해결 방법**:
+1. **환경 변수**에서 `PYTHON_VERSION`을 `3.11.9`로 설정
+2. 서비스 삭제 후 재생성 (환경 변수는 서비스 생성 시 설정해야 함)
+
 ### 배포 실패 시
 
 1. **Logs** 탭에서 오류 확인
 2. **Root Directory**가 `backend`로 설정되었는지 확인
 3. **Build Command**가 올바른지 확인
+4. **PYTHON_VERSION** 환경 변수가 `3.11.9`로 설정되었는지 확인
 
 ### CSV 파일 경로 오류
 
