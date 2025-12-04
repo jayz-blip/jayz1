@@ -51,7 +51,7 @@ function App() {
       const response = await axios.post(`${API_URL}/chat`, {
         message: input
       }, {
-        timeout: 120000, // 120초 타임아웃 (첫 요청 시 모델 로딩 시간 고려)
+        timeout: 180000, // 180초 타임아웃 (첫 요청 시 모델 로딩 시간 고려)
         headers: {
           'Content-Type': 'application/json'
         }

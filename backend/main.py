@@ -30,15 +30,33 @@ app.add_middleware(
 
 # RAG 시스템 지연 초기화 (메모리 절약)
 rag_system = None
+_initialization_started = False
 
 def get_rag_system():
     """RAG 시스템 지연 로딩"""
-    global rag_system
+    global rag_system, _initialization_started
     if rag_system is None:
         logger.info("🔄 RAG 시스템 초기화 중...")
         rag_system = RAGSystem()
         logger.info("✅ RAG 시스템 초기화 완료")
     return rag_system
+
+@app.on_event("startup")
+async def startup_event():
+    """서버 시작 시 백그라운드로 모델 미리 로드 (warm-up)"""
+    import asyncio
+    logger.info("🚀 서버 시작 - 백그라운드에서 모델 로딩 시작...")
+    
+    async def warm_up():
+        try:
+            # 백그라운드에서 모델 로드
+            await asyncio.to_thread(get_rag_system)
+            logger.info("✅ 모델 warm-up 완료")
+        except Exception as e:
+            logger.error(f"⚠️ 모델 warm-up 실패 (첫 요청 시 로드됨): {e}")
+    
+    # 백그라운드 태스크로 실행 (요청을 블로킹하지 않음)
+    asyncio.create_task(warm_up())
 
 class ChatRequest(BaseModel):
     message: str

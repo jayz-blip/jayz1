@@ -30,9 +30,10 @@ export async function onRequest(context) {
   const apiUrl = `${backendUrl}/api${path}${url.search}`;
   
   try {
-    // 타임아웃 설정 (120초 - 첫 요청 시 모델 로딩 시간 고려)
+    // 타임아웃 설정 (180초 - 첫 요청 시 모델 로딩 시간 고려)
+    // 참고: Cloudflare Functions는 최대 30초이지만, 백엔드가 더 오래 걸릴 수 있으므로 넉넉하게 설정
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000);
+    const timeoutId = setTimeout(() => controller.abort(), 180000);
     
     const response = await fetch(apiUrl, {
       method: request.method,
