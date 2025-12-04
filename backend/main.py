@@ -19,13 +19,14 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="사내용 채팅 AI", version="1.0.0", lifespan=lifespan)
 
-# CORS 설정
+# CORS 설정 (모든 origin 허용)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # 모든 origin 허용
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # 모든 메서드 허용
+    allow_headers=["*"],  # 모든 헤더 허용
+    expose_headers=["*"],  # 모든 헤더 노출
 )
 
 # RAG 시스템 지연 초기화 (메모리 절약)
@@ -77,6 +78,11 @@ class ChatResponse(BaseModel):
 @app.get("/")
 async def root():
     return {"message": "사내용 채팅 AI API", "status": "running"}
+
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str):
+    """CORS preflight 요청 처리"""
+    return {"message": "OK"}
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
