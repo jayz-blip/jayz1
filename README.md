@@ -1,14 +1,19 @@
-# 사내용 채팅 AI 🤖💬
+# 맑쥐피티 🤖💬
+
+맑은소프트 사내용 고객사 문의 관리 챗봇입니다.
+고객사별 최근 문의 내역과 답변 현황을 간편하게 확인할 수 있습니다.
 
 CSV 데이터를 학습한 RAG(Retrieval Augmented Generation) 기반 채팅 AI 시스템입니다.
 
 ## 주요 기능
 
+- 🏢 **고객사별 근황 체크**: 고객사명을 입력하면 최근 문의 내역과 답변 현황을 요약해서 제공
 - 📚 CSV 파일 기반 지식 베이스 구축
 - 🔍 의미 기반 검색 (Semantic Search)
 - 💬 자연스러운 대화형 인터페이스
 - 🎨 깔끔하고 귀여운 UI 디자인
 - 🔄 실시간 데이터 재로드 지원
+- 🤖 OpenAI GPT 연동으로 더 자연스러운 요약 제공
 
 ## 기술 스택
 
@@ -113,35 +118,31 @@ API 키가 없어도 로컬 모델로 동작합니다.
 └── README.md             # 이 파일
 ```
 
-## Cloudflare Pages 배포
+## 🚀 배포
 
-### 배포 설정
+### 빠른 배포 가이드
 
-1. **Cloudflare Pages 프로젝트 생성**
-   - Cloudflare 대시보드 → Pages → Create a project
-   - GitHub 레포지토리 연결
+자세한 배포 가이드는 **[DEPLOY_GUIDE.md](DEPLOY_GUIDE.md)**를 참고하세요.
 
-2. **빌드 설정**
-   - **Build command**: `npm run build`
-   - **Build output directory**: `dist`
-   - **Root directory**: `/` (기본값)
+### 배포 구조
 
-3. **환경 변수 설정** (선택사항)
-   - `VITE_API_URL`: 백엔드 API URL
-   - `NODE_VERSION`: `18` 또는 `20`
+- **프론트엔드**: Cloudflare Pages
+- **백엔드**: Railway 또는 Render (Python FastAPI)
 
-4. **배포**
-   - 저장 후 자동 배포 시작
-   - 배포 완료 후 URL 확인
+### 주요 단계
 
-### MIME Type 오류 해결
+1. **깃허브 푸시** ✅ (완료)
+2. **Cloudflare Pages 배포**
+   - GitHub 저장소 연결
+   - 빌드 설정: `npm install && npm run build`
+   - 출력 디렉토리: `dist`
+3. **백엔드 배포** (Railway 권장)
+   - Root Directory: `backend`
+   - 환경 변수: `OPENAI_API_KEY` 설정
+4. **연결 설정**
+   - Cloudflare Pages 환경 변수에 `BACKEND_URL` 설정
 
-이 프로젝트는 Cloudflare Pages에서 발생하는 MIME type 오류를 해결하기 위해 다음 설정을 포함합니다:
-- `public/_headers`: 올바른 MIME type 헤더 설정
-- `vite.config.js`: 빌드 최적화 설정
-- `functions/api/[...path].js`: API 프록시 (선택사항)
-
-자세한 내용은 `DEPLOY_CLOUDFLARE.md` 참고
+자세한 내용은 `DEPLOY_GUIDE.md` 참고
 
 ## 백엔드 배포 (Cloudflare에서 실행하기)
 
