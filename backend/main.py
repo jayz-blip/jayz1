@@ -79,6 +79,11 @@ class ChatResponse(BaseModel):
 async def root():
     return {"message": "사내용 채팅 AI API", "status": "running"}
 
+@app.get("/health")
+async def health():
+    """헬스체크 엔드포인트 (RAG 시스템 로드 없이 빠르게 응답)"""
+    return {"status": "healthy", "service": "malgpt-api"}
+
 @app.options("/{full_path:path}")
 async def options_handler(full_path: str):
     """CORS preflight 요청 처리"""
