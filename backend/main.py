@@ -17,31 +17,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="사내용 채팅 AI", version="1.0.0", lifespan=lifespan)
-
-# CORS 설정 (모든 origin 허용)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # 모든 origin 허용
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # 모든 메서드 허용
-    allow_headers=["*"],  # 모든 헤더 허용
-    expose_headers=["*"],  # 모든 헤더 노출
-)
-
-# RAG 시스템 지연 초기화 (메모리 절약)
-rag_system = None
-_initialization_started = False
-
-def get_rag_system():
-    """RAG 시스템 지연 로딩"""
-    global rag_system, _initialization_started
-    if rag_system is None:
-        logger.info("🔄 RAG 시스템 초기화 중...")
-        rag_system = RAGSystem()
-        logger.info("✅ RAG 시스템 초기화 완료")
-    return rag_system
-
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
@@ -66,6 +41,31 @@ async def lifespan(app: FastAPI):
     
     # 서버 종료 시 (필요한 경우)
     logger.info("🛑 서버 종료 중...")
+
+app = FastAPI(title="사내용 채팅 AI", version="1.0.0", lifespan=lifespan)
+
+# CORS 설정 (모든 origin 허용)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 모든 origin 허용
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # 모든 메서드 허용
+    allow_headers=["*"],  # 모든 헤더 허용
+    expose_headers=["*"],  # 모든 헤더 노출
+)
+
+# RAG 시스템 지연 초기화 (메모리 절약)
+rag_system = None
+_initialization_started = False
+
+def get_rag_system():
+    """RAG 시스템 지연 로딩"""
+    global rag_system, _initialization_started
+    if rag_system is None:
+        logger.info("🔄 RAG 시스템 초기화 중...")
+        rag_system = RAGSystem()
+        logger.info("✅ RAG 시스템 초기화 완료")
+    return rag_system
 
 class ChatRequest(BaseModel):
     message: str
