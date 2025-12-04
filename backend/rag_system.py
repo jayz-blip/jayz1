@@ -62,13 +62,19 @@ class RAGSystem:
         # 기존 컬렉션 삭제 및 재생성
         try:
             self.client.delete_collection("ppm_knowledge")
-        except:
-            pass
+        except Exception as e:
+            print(f"컬렉션 삭제 시도 (없을 수 있음): {e}")
         
-        self.collection = self.client.create_collection(
-            name="ppm_knowledge",
-            metadata={"hnsw:space": "cosine"}
-        )
+        # 컬렉션 생성 또는 가져오기
+        try:
+            self.collection = self.client.get_collection("ppm_knowledge")
+            print("기존 컬렉션 사용")
+        except:
+            self.collection = self.client.create_collection(
+                name="ppm_knowledge",
+                metadata={"hnsw:space": "cosine"}
+            )
+            print("새 컬렉션 생성")
         
         documents = []
         metadatas = []
@@ -131,24 +137,27 @@ class RAGSystem:
             print(f"댓글 데이터 로드 오류: {e}")
         
         # 벡터화 및 저장 (배치 처리)
-        print(f"총 {len(documents)}개 문서 벡터화 중...")
-        batch_size = 100
-        for i in range(0, len(documents), batch_size):
-            batch_docs = documents[i:i+batch_size]
-            batch_metas = metadatas[i:i+batch_size]
-            batch_ids = ids[i:i+batch_size]
+        if len(documents) > 0:
+            print(f"총 {len(documents)}개 문서 벡터화 중...")
+            batch_size = 100
+            for i in range(0, len(documents), batch_size):
+                batch_docs = documents[i:i+batch_size]
+                batch_metas = metadatas[i:i+batch_size]
+                batch_ids = ids[i:i+batch_size]
+                
+                embeddings = self.embedding_model.encode(batch_docs, show_progress_bar=False)
+                
+                self.collection.add(
+                    embeddings=embeddings.tolist(),
+                    documents=batch_docs,
+                    metadatas=batch_metas,
+                    ids=batch_ids
+                )
+                print(f"진행률: {min(i+batch_size, len(documents))}/{len(documents)}")
             
-            embeddings = self.embedding_model.encode(batch_docs, show_progress_bar=False)
-            
-            self.collection.add(
-                embeddings=embeddings.tolist(),
-                documents=batch_docs,
-                metadatas=batch_metas,
-                ids=batch_ids
-            )
-            print(f"진행률: {min(i+batch_size, len(documents))}/{len(documents)}")
-        
-        print("데이터 로딩 완료!")
+            print("데이터 로딩 완료!")
+        else:
+            print("⚠️ 로드할 문서가 없습니다.")
     
     def reload_data(self):
         """데이터 재로드"""
