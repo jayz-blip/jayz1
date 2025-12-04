@@ -75,5 +75,6 @@ async def reload_data():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    # Render는 환경 변수 PORT를 자동으로 제공하므로 0.0.0.0에 바인딩
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
 
